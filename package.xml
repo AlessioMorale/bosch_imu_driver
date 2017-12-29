@@ -12,9 +12,16 @@
   In the current version, only UART communication is supported.
 	</description>
 
+  <!-- Dependencies which this package needs to build itself. -->
   <buildtool_depend>catkin</buildtool_depend>
 
-  <depend>rospy</depend>
-  <depend>sensor_msgs</depend>
+  <!-- Dependencies needed to compile this package. -->
+  <build_depend>rospy</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+
+    <!-- Dependencies needed after this package is compiled. -->
+  <run_depend>rospy</run_depend>
+  <run_depend>sensor_msgs</run_depend>
+  <run_depend>python-serial</run_depend>
 </package>
 
