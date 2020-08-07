@@ -106,6 +106,7 @@ def read_from_dev(ser, reg_addr, length):
 
         if buf_in[0] == START_BYTE_ERR:
             rospy.logwarn("Something bad when reading")
+            ser.read_all()
             return 0
 
         if buf_in[0] != START_BYTE_RESP:
