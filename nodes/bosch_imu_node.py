@@ -254,10 +254,11 @@ if __name__ == '__main__':
             ]
 
             timeout_cnt = 0
+            time = rospy.Time.now()
 
             if publish_raw:
                 # Publish raw data
-                imu_raw.header.stamp = rospy.Time.now()
+                imu_raw.header.stamp = time
                 imu_raw.header.frame_id = frame_id
                 imu_raw.header.seq = seq
                 imu_raw.orientation_covariance[0] = -1  #no orientation available in the RAW data, so set to -1 according to ROS convention
@@ -272,7 +273,7 @@ if __name__ == '__main__':
                 pub_raw.publish(imu_raw)
 
             # Publish filtered data
-            imu_data.header.stamp = rospy.Time.now()
+            imu_data.header.stamp = time
             imu_data.header.frame_id = frame_id
             imu_data.header.seq = seq
             imu_data.orientation.w = float(st.unpack('h', st.pack('BB', buf[24], buf[25]))[0])
@@ -292,7 +293,7 @@ if __name__ == '__main__':
 
             if publish_mag:
                 # Publish magnetometer data
-                mag_msg.header.stamp = rospy.Time.now()
+                mag_msg.header.stamp = time
                 mag_msg.header.frame_id = frame_id
                 mag_msg.header.seq = seq
                 mag_msg.magnetic_field.x = float(st.unpack('h', st.pack('BB', buf[6], buf[7]))[0]) / mag_fact
@@ -301,7 +302,7 @@ if __name__ == '__main__':
                 pub_mag.publish(mag_msg)
 
             # Publish temperature
-            temperature_msg.header.stamp = rospy.Time.now()
+            temperature_msg.header.stamp = time
             temperature_msg.header.frame_id = frame_id
             temperature_msg.header.seq = seq
             temperature_msg.temperature = buf[44]
