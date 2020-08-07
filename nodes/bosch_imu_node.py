@@ -120,6 +120,40 @@ def read_from_dev(ser, reg_addr, length):
 
     return buf_in
 
+def check_imu_id(ser):
+    # Check if IMU ID is correct
+    buf = read_from_dev(ser, CHIP_ID, 1)
+    if buf == 0 or buf[0] != BNO055_ID:
+        return False
+    return True
+
+def configure_imu(ser):
+    ret = True
+    # IMU Configuration
+    if not(write_to_dev(ser, OPER_MODE, 1, OPER_MODE_CONFIG)):
+        rospy.logerr("Unable to set IMU into config mode.")
+
+    if not(write_to_dev(ser, PWR_MODE, 1, PWR_MODE_NORMAL)):
+        rospy.logerr("Unable to set IMU normal power mode.")
+
+    if not(write_to_dev(ser, PAGE_ID, 1, 0x00)):
+        rospy.logerr("Unable to set IMU register page 0.")
+
+    if not(write_to_dev(ser, SYS_TRIGGER, 1, 0x00)):
+        rospy.logerr("Unable to start IMU.")
+
+    if not(write_to_dev(ser, UNIT_SEL, 1, 0x83)):
+        rospy.logerr("Unable to set IMU units.")
+
+    if not(write_to_dev(ser, AXIS_MAP_CONFIG, 1, 0x24)):
+        rospy.logerr("Unable to remap IMU axis.")
+
+    if not(write_to_dev(ser, AXIS_MAP_SIGN, 1, 0x06)):
+        rospy.logerr("Unable to set IMU axis signs.")
+
+    if not(write_to_dev(ser, OPER_MODE, 1, OPER_MODE_NDOF)):
+        rospy.logerr("Unable to set IMU operation mode into operation mode.")
+
 
 # Write data to IMU
 def write_to_dev(ser, reg_addr, length, data):
@@ -179,37 +213,10 @@ if __name__ == '__main__':
         rospy.logerr("IMU not found at port " + port + ". Check the port in the launch file.")
         sys.exit(0)
 
-    # Check if IMU ID is correct
-    buf = read_from_dev(ser, CHIP_ID, 1)
-    if buf == 0 or buf[0] != BNO055_ID:
+    if not check_imu_id(ser):
         rospy.logerr("Device ID is incorrect. Shutdown.")
         sys.exit(0)
-
-    # IMU Configuration
-    if not(write_to_dev(ser, OPER_MODE, 1, OPER_MODE_CONFIG)):
-        rospy.logerr("Unable to set IMU into config mode.")
-
-    if not(write_to_dev(ser, PWR_MODE, 1, PWR_MODE_NORMAL)):
-        rospy.logerr("Unable to set IMU normal power mode.")
-
-    if not(write_to_dev(ser, PAGE_ID, 1, 0x00)):
-        rospy.logerr("Unable to set IMU register page 0.")
-
-    if not(write_to_dev(ser, SYS_TRIGGER, 1, 0x00)):
-        rospy.logerr("Unable to start IMU.")
-
-    if not(write_to_dev(ser, UNIT_SEL, 1, 0x82)):
-        rospy.logerr("Unable to set IMU units.")
-
-    if not(write_to_dev(ser, AXIS_MAP_CONFIG, 1, 0x24)):
-        rospy.logerr("Unable to remap IMU axis.")
-
-    if not(write_to_dev(ser, AXIS_MAP_SIGN, 1, 0x06)):
-        rospy.logerr("Unable to set IMU axis signs.")
-
-    if not(write_to_dev(ser, OPER_MODE, 1, OPER_MODE_NDOF)):
-        rospy.logerr("Unable to set IMU operation mode into operation mode.")
-
+    
     rospy.loginfo("Bosch BNO055 IMU configuration complete.")
 
     rate = rospy.Rate(frequency)
@@ -220,6 +227,8 @@ if __name__ == '__main__':
     gyr_fact = 900.0
     seq = 0
 
+    max_failed_attempts = 10  # Number of failed reading attempts before sensor reset
+    timeout_cnt = max_failed_attempts
     while not rospy.is_shutdown():
         buf = read_from_dev(ser, ACCEL_DATA, 45)
         if buf != 0:
@@ -243,6 +252,8 @@ if __name__ == '__main__':
             0 , 0.017, 0,
             0 , 0 , 0.017
             ]
+
+            timeout_cnt = 0
 
             if publish_raw:
                 # Publish raw data
@@ -297,5 +308,12 @@ if __name__ == '__main__':
             pub_temp.publish(temperature_msg)
 
             seq = seq + 1
+        else:
+            timeout_cnt = timeout_cnt + 1
+            if timeout_cnt >= max_failed_attempts:
+                rospy.logwarn("Timeout while waiting for sensor samples. Attempting reconfiguration.")
+                configure_imu(ser)
+                timeout_cnt = 0
+
         rate.sleep()
     ser.close()
