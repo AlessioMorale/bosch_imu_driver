@@ -78,6 +78,8 @@ READ = 0x01
 WRITE = 0x00
 
 # Read data from IMU
+
+
 def read_from_dev(ser, reg_addr, length):
     buf_out = bytearray()
     buf_out.append(START_BYTE_WR)
@@ -87,9 +89,6 @@ def read_from_dev(ser, reg_addr, length):
 
     try:
         ser.write(buf_out)
-        buf_in = bytearray(ser.read(2 + length))
-
-        # print("Reading, wr: ", binascii.hexlify(buf_out), "  re: ", binascii.hexlify(buf_in))
     except:
         return 0
 
@@ -119,6 +118,29 @@ def read_from_dev(ser, reg_addr, length):
             break
 
     return buf_in
+
+
+# Write data to IMU
+def write_to_dev(ser, reg_addr, length, data):
+    buf_out = bytearray()
+    buf_out.append(START_BYTE_WR)
+    buf_out.append(WRITE)
+    buf_out.append(reg_addr)
+    buf_out.append(length)
+    buf_out.append(data)
+
+    try:
+        ser.write(buf_out)
+        buf_in = bytearray(ser.read(2))
+        # print("Writing, wr: ", binascii.hexlify(buf_out), "  re: ", binascii.hexlify(buf_in))
+    except:
+        return False
+
+    if (buf_in.__len__() != 2) or (buf_in[1] != 0x01):
+        rospy.logwarn("Incorrect Bosh IMU device response.")
+        return False
+    return True
+
 
 def check_imu_id(ser):
     # Check if IMU ID is correct
@@ -153,29 +175,6 @@ def configure_imu(ser):
 
     if not(write_to_dev(ser, OPER_MODE, 1, OPER_MODE_NDOF)):
         rospy.logerr("Unable to set IMU operation mode into operation mode.")
-
-
-# Write data to IMU
-def write_to_dev(ser, reg_addr, length, data):
-    buf_out = bytearray()
-    buf_out.append(START_BYTE_WR)
-    buf_out.append(WRITE)
-    buf_out.append(reg_addr)
-    buf_out.append(length)
-    buf_out.append(data)
-
-    try:
-        ser.write(buf_out)
-        buf_in = bytearray(ser.read(2))
-        # print("Writing, wr: ", binascii.hexlify(buf_out), "  re: ", binascii.hexlify(buf_in))
-    except:
-        return False
-
-    if (buf_in.__len__() != 2) or (buf_in[1] != 0x01):
-        rospy.logwarn("Incorrect Bosh IMU device response.")
-        return False
-    return True
-
 
 imu_data = Imu()            # Filtered data
 imu_raw = Imu()             # Raw IMU data

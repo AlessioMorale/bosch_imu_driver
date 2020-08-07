@@ -20,8 +20,8 @@
   <build_depend>sensor_msgs</build_depend>
 
     <!-- Dependencies needed after this package is compiled. -->
-  <run_depend>rospy</run_depend>
-  <run_depend>sensor_msgs</run_depend>
-  <run_depend>python-serial</run_depend>
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>python-serial</exec_depend>
 </package>
 
